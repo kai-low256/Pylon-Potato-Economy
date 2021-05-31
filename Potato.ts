@@ -499,9 +499,8 @@ potatoCommands.subcommand('potato', (potatoSubcommands) => {
     }
   );
 
-  potatoSubcommands.on(
+  potatoSubcommands.raw(
     { name: 'toptop', description: 'top potatos' },
-    () => ({}),
     async (message) => {
       const items = await potatoKV.items();
       const sorted = items
