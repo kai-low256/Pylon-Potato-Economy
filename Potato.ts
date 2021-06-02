@@ -912,6 +912,7 @@ potatoCommands.subcommand('potato', (potatoSubcommands) => {
     }
   );
 
+  // Shop also in progress
   const shop = potatoSubcommands.subcommandGroup({
     name: 'shop',
     description: 'potato shop commands'
