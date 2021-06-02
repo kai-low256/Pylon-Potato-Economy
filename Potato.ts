@@ -1,5 +1,11 @@
+import * as BetterKV from './BetterKV';
+
 //potato economy
 const Potato_embed_color = 0x11111c;
+const Test_Message =
+  'Nate is testing this command, any potatoes earned from this command will not count';
+
+// Take away one of Jayden's potatoes
 
 const POTATO_LOTTERY_TIME_MINUTES = 5;
 const ALLOW_DAILY = true;
@@ -46,8 +52,15 @@ const potatoCommands = new discord.command.CommandGroup({
 });
 
 const potatoKV = new pylon.KVNamespace('potato');
+
+import { randomBetween } from './main';
+
+// const randomBetween = (min: number, max: number) =>
+//   Math.round(Math.random() * (max - min) + min);
+
 const randomTimeBetween = (min: number, max: number) =>
   Math.round(Math.random() * (max - min) + min);
+
 const nextDrawText = () => {
   const nextDraw =
     (Math.ceil(Date.now() / 1000 / 60 / POTATO_LOTTERY_TIME_MINUTES) *
@@ -66,8 +79,7 @@ const nextDrawText = () => {
 };
 
 const setDefaultReply = (commandGroup: discord.command.CommandGroup) => {
-  commandGroup.default(
-    () => ({}),
+  commandGroup.defaultRaw(
     async (message) =>
       await message.reply(
         `${discord.decor.Emojis.NO_ENTRY} unknown potato command, try \`%potato help\``
@@ -126,14 +138,17 @@ discord.on(discord.Event.MESSAGE_CREATE, async (message: discord.Message) => {
               ? `tried to pick up a poisonous potato, poisoning **${oldCount -
                   newCount}** potatos in the process`
               : 'has claimed a potato'
-          }, and now holds **${newCount}** potato${newCount === 1 ? '' : 's'}.`,
+          }, and now holds **${newCount}** potato${
+            newCount === 1 ? '' : 's'
+          }.\n${discord.decor.Emojis.POTATO.repeat(Math.min(newCount, 125))}`,
           color: Potato_embed_color,
           thumbnail: { url: message.author.getAvatarUrl() },
           footer: {
             text: poisonous
               ? ''
               : "to the rest of you, can't catch em all, right?"
-          }
+          },
+          timestamp: new Date().toISOString()
         })
       );
     }
@@ -159,7 +174,7 @@ discord.on(discord.Event.MESSAGE_CREATE, async (message: discord.Message) => {
 
   const reply = await message.reply(discord.decor.Emojis.POTATO);
 
-  const cooldown = randomTimeBetween(3 * 60 * 1000, 20 * 60 * 1000);
+  const cooldown = randomTimeBetween(30 * 60 * 1000, 45 * 60 * 1000);
 
   await potatoKV.put('cooldown', true, { ttl: cooldown });
   await potatoKV.put('lastPotato', `${message.channelId}-${reply.id}`);
@@ -167,6 +182,109 @@ discord.on(discord.Event.MESSAGE_CREATE, async (message: discord.Message) => {
 
 potatoCommands.subcommand('potato', (potatoSubcommands) => {
   setDefaultReply(potatoSubcommands);
+
+  // Stuff until help command are all work in progress
+  potatoSubcommands.raw(
+    {
+      name: 'summon',
+      description: 'summon a potato in the chat',
+      filters: discord.command.filters.isUserId('502746300224241664')
+    },
+    async (message) => {
+      if (await potatoKV.get<boolean>(`summon-${message.author?.id}`))
+        return await message.reply(
+          `${discord.decor.Emojis.NO_ENTRY} Summoning potatoes has a 6-10 hour cooldown, Please wait (${Test_Message})`
+        );
+      const lastPotato = await potatoKV.get<string>('lastPotato');
+      if (lastPotato)
+        return await message.reply(
+          `there is already an active potato waiting to be picked up in <#${
+            lastPotato.split('-')[0]
+          }>!`
+        );
+      const reply = await message.reply(
+        `${discord.decor.Emojis.POTATO}, ${Test_Message}`
+      );
+      const cooldown = randomTimeBetween(
+        6 * 60 * 60 * 1000,
+        10 * 60 * 60 * 1000
+      );
+      await potatoKV.put('cooldown', true, { ttl: cooldown });
+      await potatoKV.put('lastPotato', `${message.channelId}-${reply.id}`, {
+        ttl: cooldown
+      });
+    }
+  );
+
+  if (ALLOW_DAILY)
+    potatoSubcommands.raw(
+      {
+        name: 'daily2',
+        description: 'daily potato',
+        filters: discord.command.filters.isUserId('502746300224241664')
+      },
+      async (message) => {
+        if (await potatoKV.get<boolean>(`daily-2-${message.author.id}`))
+          return await message.reply(
+            `${discord.decor.Emojis.NO_ENTRY} you already claimed your daily potato! (${Test_Message})`
+          );
+
+        await potatoKV.put(`daily-2-${message.author.id}`, true, {
+          ttl:
+            Math.ceil(Date.now() / 1000 / 60 / 60 / 12) * 12 * 60 * 60 * 1000 -
+            Date.now()
+        });
+        const Random_Amount = randomBetween(0, 2);
+        const newCount = await potatoKV.transact(
+          message.author.id,
+          (prev: number | undefined) => (prev || 0) + Random_Amount
+        );
+
+        if (Random_Amount === 0) {
+          await message.reply(
+            `LMFAO you suck, You claimed your daily potato and recieved **no** potatos, you remain with **${newCount}** potatos. (${Test_Message})`
+          );
+        } else {
+          await message.reply(
+            `You claimed your daily potato and recieved **${Random_Amount}** potatos, you now have **${newCount}** potatos. (${Test_Message})`
+          );
+        }
+      }
+    );
+
+  if (ALLOW_WEEKLY)
+    potatoSubcommands.raw(
+      {
+        name: 'weekly',
+        description: 'weekly potato',
+        filters: discord.command.filters.isUserId('502746300224241664')
+      },
+      async (message) => {
+        if (await potatoKV.get<boolean>(`weekly-${message.author.id}`))
+          return await message.reply(
+            `you already claimed your **weekly** potato! (${Test_Message})`
+          );
+
+        await potatoKV.put(`weekly-${message.author.id}`, true, {
+          ttl:
+            Math.ceil(Date.now() / 1000 / 60 / 60 / 24 / 7) *
+              7 *
+              24 *
+              60 *
+              60 *
+              1000 -
+            Date.now()
+        });
+        const Random_Amount = randomBetween(3, 5);
+        const newCount = await potatoKV.transact(
+          message.author.id,
+          (prev: number | undefined) => (prev || 0) + Random_Amount
+        );
+        await message.reply(
+          `You claimed your weekly potato and recieved **${Random_Amount}** potatos, you now have **${newCount}** potatos. (${Test_Message})`
+        );
+      }
+    );
 
   potatoSubcommands.raw(
     { name: 'help', description: 'potato help' },
@@ -206,6 +324,42 @@ potatoCommands.subcommand('potato', (potatoSubcommands) => {
             url: 'https://images.emojiterra.com/twitter/v13.0/512px/1f954.png'
           }
         })
+      );
+    }
+  );
+
+  potatoSubcommands.on(
+    {
+      name: 'modify',
+      description: 'modify a users potatos',
+      aliases: ['mod']
+    },
+    (args) => ({ who: args.user(), count: args.string() }),
+    async (message, { who, count }) => {
+      if (
+        !(await discord.command.filters
+          .isUserId('502746300224241664')
+          .filter(message))
+      )
+        return await message.reply('missing permissions');
+      if (who.bot)
+        return await message.reply(
+          'thats a.. bot. you wanna modify a bots potatos??'
+        );
+      const oldCount = (await potatoKV.get<number>(who.id)) || 0;
+
+      let newCount = oldCount;
+      if (count.startsWith('+')) newCount += parseInt(count.replace('+', ''));
+      else if (count.startsWith('-'))
+        newCount -= parseInt(count.replace('-', ''));
+      else newCount = parseInt(count);
+
+      if (isNaN(newCount as number))
+        return await message.reply('invalid count');
+
+      await potatoKV.put(who.id, newCount as number);
+      await message.reply(
+        `Ok, updated **${who.username}**#${who.discriminator}'s potatoes to **${newCount}**`
       );
     }
   );
@@ -258,14 +412,15 @@ potatoCommands.subcommand('potato', (potatoSubcommands) => {
                 : 'has claimed a potato'
             }, and now holds **${newCount}** potato${
               newCount === 1 ? '' : 's'
-            }.`,
+            }.\n${discord.decor.Emojis.POTATO.repeat(Math.min(newCount, 125))}`,
             color: Potato_embed_color,
             thumbnail: { url: message.author.getAvatarUrl() },
             footer: {
               text: poisonous
                 ? ''
                 : "to the rest of you, can't catch em all, right?"
-            }
+            },
+            timestamp: new Date().toISOString()
           })
         );
 
@@ -311,11 +466,12 @@ potatoCommands.subcommand('potato', (potatoSubcommands) => {
             message.author?.discriminator
           } has **${currentCount}** potato${
             currentCount === 1 ? '' : 's'
-          }. \n${discord.decor.Emojis.POTATO.repeat(
-            Math.min(currentCount, 100)
+          }.\n${discord.decor.Emojis.POTATO.repeat(
+            Math.min(currentCount, 125)
           )}`,
           color: Potato_embed_color,
-          thumbnail: { url: message.author.getAvatarUrl() }
+          thumbnail: { url: message.author.getAvatarUrl() },
+          timestamp: new Date().toISOString()
         })
       );
     }
@@ -333,11 +489,12 @@ potatoCommands.subcommand('potato', (potatoSubcommands) => {
             who?.user.discriminator
           } has **${currentCount}** potato${
             currentCount === 1 ? '' : 's'
-          }. \n${discord.decor.Emojis.POTATO.repeat(
-            Math.min(currentCount, 100)
+          }.\n${discord.decor.Emojis.POTATO.repeat(
+            Math.min(currentCount, 125)
           )}`,
           color: Potato_embed_color,
-          thumbnail: { url: who?.user.getAvatarUrl() }
+          thumbnail: { url: who?.user.getAvatarUrl() },
+          timestamp: new Date().toISOString()
         })
       );
     }
@@ -347,6 +504,7 @@ potatoCommands.subcommand('potato', (potatoSubcommands) => {
     {
       name: 'gamble',
       description: 'gamble potatos'
+      // filters: discord.command.filters.isUserId('502746300224241664')
     },
     (args) => ({ count: args.integer() }),
     async (message, { count }) => {
@@ -387,12 +545,13 @@ potatoCommands.subcommand('potato', (potatoSubcommands) => {
             won ? 'giving you' : 'leaving you with'
           } a total of **${newCount}** potato${
             newCount === 1 ? '' : 's'
-          }. ${discord.decor.Emojis.POTATO.repeat(newCount)} \n${
+          }. \n${discord.decor.Emojis.POTATO.repeat(newCount)} \n${
             won
               ? discord.decor.Emojis.CHART_WITH_UPWARDS_TREND
               : discord.decor.Emojis.CHART_WITH_DOWNWARDS_TREND
           }`,
-          color: Potato_embed_color
+          color: Potato_embed_color,
+          timestamp: new Date().toISOString()
         })
       );
     }
@@ -402,7 +561,11 @@ potatoCommands.subcommand('potato', (potatoSubcommands) => {
     { name: 'rob', description: 'rob potatos' },
     (args) => ({ who: args.guildMember(), count: args.integer() }),
     async (message, { who, count }) => {
-      if (
+      /*if (message.content === "potato rob" && who === null || count === null) {
+        message.reply(`${discord.decor.Emojis.PERSON_FACEPALMING} `);
+      } else if (message.content === "potato rob" && who === null || count === null && message.author.id === '729499724582879334') {
+        message.reply(`${discord.decor.Emojis.PERSON_FACEPALMING} `);
+      } else*/ if (
         message.author?.id === who?.user.id
       )
         return await message.reply("You can't rob yourself!");
@@ -425,10 +588,10 @@ potatoCommands.subcommand('potato', (potatoSubcommands) => {
       if (count < 1)
         return await message.reply('You need to rob at least one potato.');
 
-      if (count > 5)
-        return await message.reply(
-          'Your small hands can only carry **5** potatos!'
-        );
+      // if (count > 5)
+      //   return await message.reply(
+      //     'Your small hands can only carry **5** potatos!'
+      //   );
 
       await potatoKV.put(`steal-${message.author?.id}`, true, {
         ttl: randomTimeBetween(3 * 60 * 1000, 10 * 60 * 1000)
@@ -453,12 +616,13 @@ potatoCommands.subcommand('potato', (potatoSubcommands) => {
             success ? 'giving you a total of' : 'leaving you with'
           } **${newUserPotatos}** potato${
             newUserPotatos === 1 ? '' : 's'
-          }. ${discord.decor.Emojis.POTATO.repeat(newUserPotatos)} \n${
+          }. \n${discord.decor.Emojis.POTATO.repeat(newUserPotatos)} \n${
             success
               ? discord.decor.Emojis.CHART_WITH_UPWARDS_TREND
               : discord.decor.Emojis.CHART_WITH_DOWNWARDS_TREND
           }`,
-          color: Potato_embed_color
+          color: Potato_embed_color,
+          timestamp: new Date().toISOString()
         })
       );
     }
@@ -521,10 +685,10 @@ potatoCommands.subcommand('potato', (potatoSubcommands) => {
           color: Potato_embed_color,
           description: userMap
             .map(
-              (entry) =>
-                `\`**${message.author?.username}**#${message.author?.discriminator}\`: ${entry.potatos} potatos`
+              (entry) => `\`${entry.user?.getTag()}\`: ${entry.potatos} potatos`
             )
-            .join('\n')
+            .join('\n'),
+          timestamp: new Date().toISOString()
         })
       );
     }
@@ -590,11 +754,36 @@ potatoCommands.subcommand('potato', (potatoSubcommands) => {
       await message.reply(
         new discord.Embed({
           title: `${discord.decor.Emojis.TROPHY} Leaderboard​ ${discord.decor.Emojis.CROWN}`,
-          description
+          description,
+          timestamp: new Date().toISOString()
         })
       );
     }
   );
+
+  if (ALLOW_DAILY)
+    potatoSubcommands.raw(
+      { name: 'daily', description: 'daily potato' },
+      async (message) => {
+        if (await potatoKV.get<boolean>(`daily2-${message.author.id}`))
+          return await message.reply(
+            `${discord.decor.Emojis.NO_ENTRY} you already claimed your **daily** potato!`
+          );
+
+        await potatoKV.put(`daily-${message.author.id}`, true, {
+          ttl:
+            Math.ceil(Date.now() / 1000 / 60 / 60 / 12) * 12 * 60 * 60 * 1000 -
+            Date.now()
+        });
+        const newCount = await potatoKV.transact(
+          message.author.id,
+          (prev: number | undefined) => (prev || 0) + 1
+        );
+        await message.reply(
+          `you claimed your daily potato, and now holds **${newCount}** potatos.`
+        );
+      }
+    );
 
   potatoSubcommands.raw(
     { name: 'drop', description: 'drop a potato in the chat' },
@@ -625,34 +814,103 @@ potatoCommands.subcommand('potato', (potatoSubcommands) => {
     }
   );
 
-  if (ALLOW_DAILY)
-    potatoSubcommands.raw(
-      { name: 'daily', description: 'daily potato' },
-      async (message) => {
-        if (await potatoKV.get<boolean>(`daily-${message.author.id}`))
-          return await message.reply(
-            'you already claimed your **daily** potato!'
-          );
-
-        await potatoKV.put(`daily-${message.author.id}`, true, {
-          ttl:
-            Math.ceil(Date.now() / 1000 / 60 / 60 / 12) * 12 * 60 * 60 * 1000 -
-            Date.now()
-        });
-        const newCount = await potatoKV.transact(
-          message.author.id,
-          (prev: number | undefined) => (prev || 0) + 1
-        );
-        await message.reply(
-          `you claimed your daily potato, and now holds **${newCount}** potatos.`
-        );
-      }
-    );
-
   const lottery = potatoSubcommands.subcommandGroup({
     name: 'lottery',
     description: 'potato lottery commands'
   });
+
+  setDefaultReply(lottery);
+
+  lottery.raw({ name: '', description: 'pool info' }, async (message) => {
+    // const channel = await discord.getGuildTextChannel(
+    //   global.POTATO_LOTTERY_CHANNEL
+    // );
+    // if (!channel)
+    //   return await message.reply(
+    //     `<:choice_no:742725736485355600> sorry, the lottery has been prohibited by the authorities.`
+    //   );
+
+    const lotteryData = ((await potatoKV.get('lottery')) || {}) as {
+      [key: string]: number;
+    };
+    await message.reply(
+      `${
+        Object.keys(lotteryData).length
+      } people are currently bidding a total of **${Object.values(
+        lotteryData
+      ).reduce((a, b) => a + b, 0)}** potatos${
+        lotteryData[message.author.id]
+          ? `. you are in the pool with **${lotteryData[message.author.id]}** ${
+              lotteryData[message.author.id] === 1 ? 'potato' : 'potatos'
+            }`
+          : ''
+      }. ${nextDrawText()}`
+    );
+  });
+
+  lottery.on(
+    { name: 'deposit', description: 'deposits potatos into the lottery pool' },
+    (args) => ({ count: args.integer() }),
+    async (message, { count }) => {
+      // const channel = await discord.getGuildTextChannel(
+      //   global.POTATO_LOTTERY_CHANNEL
+      // );
+      // if (!channel)
+      //   return await message.reply(
+      //     `<:choice_no:742725736485355600> sorry, the lottery has been prohibited by the authorities.`
+      //   );
+
+      const currentCount =
+        (await potatoKV.get<number>(message.author?.id)) || 0;
+
+      if (count > currentCount)
+        return await message.reply(
+          'You can only deposit as many potatos as you have!'
+        );
+
+      if (count < 1)
+        return await message.reply(
+          'You need to deposit at least **1** potato.'
+        );
+
+      await potatoKV.put(message.author?.id, currentCount - count);
+
+      const lotteryData = await potatoKV.transact(
+        'lottery',
+        (prev: pylon.JsonObject | undefined) => {
+          const next = {} as { [key: string]: number };
+          if (prev)
+            for (const [key, value] of Object.entries(prev as object))
+              next[key] = value;
+
+          next[message.author.id] =
+            (((prev && prev[message.author.id]) || 0) as number) + count;
+
+          return next;
+        }
+      );
+
+      const totalCount = Object.values(lotteryData as object).reduce(
+        (a, b) => a + b,
+        0
+      );
+      const gamblerCount = Object.keys(lotteryData as object).length;
+
+      await message.reply(
+        `you deposited **${count}** ${
+          count === 1 ? 'potato' : 'potatos'
+        }, there are **${totalCount}** ${
+          totalCount === 1 ? 'potato' : 'potatos'
+        } from **${gamblerCount}** ${
+          gamblerCount === 1 ? 'gambler' : 'gamblers'
+        } in the pool${
+          lotteryData![message.author.id] !== count
+            ? ` (${lotteryData![message.author.id]} of those are yours)`
+            : ''
+        }. ${nextDrawText()}`
+      );
+    }
+  );
 
   const shop = potatoSubcommands.subcommandGroup({
     name: 'shop',
