@@ -1,6 +1,5 @@
 const Potato_embed_color = 0x11111c;
 
-// Take away one of Jayden's potatoes
 const POTATO_LOTTERY_TIME_MINUTES = 5;
 const ALLOW_DAILY = true;
 const ALLOW_WEEKLY = true;
