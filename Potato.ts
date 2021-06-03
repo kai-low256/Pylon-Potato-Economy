@@ -1,12 +1,6 @@
-import * as BetterKV from './BetterKV';
-
-//potato economy
 const Potato_embed_color = 0x11111c;
-const Test_Message =
-  'Nate is testing this command, any potatoes earned from this command will not count';
 
 // Take away one of Jayden's potatoes
-
 const POTATO_LOTTERY_TIME_MINUTES = 5;
 const ALLOW_DAILY = true;
 const ALLOW_WEEKLY = true;
@@ -174,7 +168,7 @@ discord.on(discord.Event.MESSAGE_CREATE, async (message: discord.Message) => {
 
   const reply = await message.reply(discord.decor.Emojis.POTATO);
 
-  const cooldown = randomTimeBetween(30 * 60 * 1000, 45 * 60 * 1000);
+  const cooldown = randomTimeBetween(35 * 60 * 1000, 60 * 60 * 1000);
 
   await potatoKV.put('cooldown', true, { ttl: cooldown });
   await potatoKV.put('lastPotato', `${message.channelId}-${reply.id}`);
@@ -912,7 +906,6 @@ potatoCommands.subcommand('potato', (potatoSubcommands) => {
     }
   );
 
-  // Shop also in progress
   const shop = potatoSubcommands.subcommandGroup({
     name: 'shop',
     description: 'potato shop commands'
