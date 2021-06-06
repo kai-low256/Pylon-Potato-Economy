@@ -3,6 +3,7 @@ const Potato_embed_color = 0x11111c;
 const POTATO_LOTTERY_TIME_MINUTES = 5;
 const ALLOW_DAILY = true;
 const ALLOW_WEEKLY = true;
+
 const SHOP_ITEMS = {
   'potato farmer': {
     price: 7,
@@ -686,7 +687,7 @@ potatoCommands.subcommand('potato', (potatoSubcommands) => {
       async (message) => {
         if (await potatoKV.get<boolean>(`daily-2-${message.author.id}`))
           return await message.reply(
-            `${discord.decor.Emojis.NO_ENTRY} you already claimed your **daily** potato! (${Test_Message})`
+            `${discord.decor.Emojis.NO_ENTRY} you already claimed your **daily** potato!`
           );
 
         await potatoKV.put(`daily-2-${message.author.id}`, true, {
@@ -700,11 +701,11 @@ potatoCommands.subcommand('potato', (potatoSubcommands) => {
 
         if (Random_Amount === 0) {
           await message.reply(
-            `LMFAO you suck, You claimed your daily potato and recieved **no** potatos, you remain with **${newCount}** potatos. (${Test_Message})`
+            `LMFAO you suck, You claimed your daily potato and recieved **no** potatos, you remain with **${newCount}** potatos.`
           );
         } else {
           await message.reply(
-            `You claimed your daily potato and recieved **${Random_Amount}** potatos, you now have **${newCount}** potatos. (${Test_Message})`
+            `You claimed your daily potato and recieved **${Random_Amount}** potatos, you now have **${newCount}** potatos.`
           );
         }
       }
@@ -719,7 +720,7 @@ potatoCommands.subcommand('potato', (potatoSubcommands) => {
       async (message) => {
         if (await potatoKV.get<boolean>(`weekly-${message.author.id}`))
           return await message.reply(
-            `${discord.decor.Emojis.NO_ENTRY} you already claimed your **weekly** potato! (${Test_Message})`
+            `${discord.decor.Emojis.NO_ENTRY} you already claimed your **weekly** potato!`
           );
 
         await potatoKV.put(`weekly-${message.author.id}`, true, {
@@ -738,7 +739,7 @@ potatoCommands.subcommand('potato', (potatoSubcommands) => {
           (prev: number | undefined) => (prev || 0) + Random_Amount
         );
         await message.reply(
-          `You claimed your weekly potato and recieved **${Random_Amount}** potatos, you now have **${newCount}** potatos. (${Test_Message})`
+          `You claimed your weekly potato and recieved **${Random_Amount}** potatos, you now have **${newCount}** potatos.`
         );
       }
     );
